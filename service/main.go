@@ -9,6 +9,7 @@ import (
 	"github.com/micro/go-micro/v2"
 	log "github.com/micro/go-micro/v2/logger"
 
+	"github.com/nebiros/poc-go-micro/broker/azqueue"
 	proto "github.com/nebiros/poc-go-micro/service/proto/service"
 )
 
@@ -16,6 +17,11 @@ func main() {
 	service := micro.NewService(
 		micro.Name("com.thriveglobal.service.poc"),
 		micro.Version("latest"),
+		micro.Broker(azqueue.NewBroker(
+			azqueue.StorageQueueName("sample-queue"),
+			azqueue.StorageAccountName(""),
+			azqueue.StorageAccountKey(""),
+		)),
 	)
 
 	service.Init()

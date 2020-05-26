@@ -5,7 +5,7 @@ import (
 
 	"github.com/Azure/azure-storage-queue-go/azqueue"
 
-	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/v2/broker"
 )
 
 type (

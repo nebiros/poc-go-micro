@@ -7,7 +7,7 @@ import (
 	"golang.org/x/tools/go/ssa/interp/testdata/src/fmt"
 
 	"github.com/Azure/azure-storage-queue-go/azqueue"
-	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/config/cmd"
 )
 
@@ -45,11 +45,15 @@ func (b *azqueueBroker) azqueueQueueURL() azqueue.QueueURL {
 		return v.(azqueue.QueueURL)
 	}
 
-	return nil
+	return azqueue.QueueURL{}
 }
 
-func (b *azqueueBroker) Init(option ...broker.Option) error {
-	panic("implement me")
+func (b *azqueueBroker) Init(opts ...broker.Option) error {
+	for _, o := range opts {
+		o(&b.options)
+	}
+
+	return nil
 }
 
 func (b *azqueueBroker) Options() broker.Options {
@@ -80,7 +84,7 @@ func (b *azqueueBroker) Connect() error {
 		return err
 	}
 
-	b.queueURL = azqueue.NewQueueURL(qURL, azqueue.NewPipeline(credential, azqueue.PipelineOptions{}))
+	b.queueURL = azqueue.NewQueueURL(*qURL, azqueue.NewPipeline(credential, azqueue.PipelineOptions{}))
 
 	return nil
 }
