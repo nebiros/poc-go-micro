@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "pub";
+option go_package = "proto/pub";
 
 service Pub {
 	rpc Call(Request) returns (Response) {}

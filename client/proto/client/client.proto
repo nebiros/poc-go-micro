@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "client";
+option go_package = "proto/client";
 
 service Client {
 	rpc Call(Request) returns (Response) {}

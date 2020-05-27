@@ -4,19 +4,20 @@ MODIFY=Mgithub.com/micro/go-micro/api/proto/api.proto=github.com/micro/go-micro/
 
 .PHONY: proto
 proto:
-    
 	protoc --proto_path=. --micro_out=${MODIFY}:. --go_out=${MODIFY}:. proto/pub/pub.proto
-    
 
 .PHONY: build
 build: proto
-
-	go build -o pub *.go
+	go build -race -v -o pub *.go
 
 .PHONY: test
 test:
-	go test -v ./... -cover
+	go test -race -v ./... -cover
 
 .PHONY: docker
 docker:
 	docker build . -t pub:latest
+
+.PHONY: run
+run:
+	go run -race -v main.go
