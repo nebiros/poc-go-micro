@@ -22,8 +22,6 @@ const (
 )
 
 func init() {
-	log.Init(log.WithLevel(log.Level(log.TraceLevel)))
-
 	cmd.DefaultBrokers["azqueue"] = NewBroker
 }
 
@@ -119,16 +117,43 @@ func (b *azqueueBroker) Connect() error {
 }
 
 func (b *azqueueBroker) Disconnect() error {
-	panic("implement me")
+	return nil
 }
 
-func (b *azqueueBroker) Publish(topic string, m *broker.Message, opts ...broker.PublishOption) error {
-	panic("implement me")
+func (b *azqueueBroker) Publish(queueName string, m *broker.Message, opts ...broker.PublishOption) error {
+	options := broker.PublishOptions{}
+
+	for _, o := range opts {
+		o(&options)
+	}
+
+	if options.Context == nil {
+		// This prevents a nil pointer at the Azure SDK
+		options.Context = context.Background()
+	}
+
+	queueURL := b.serviceURL.NewQueueURL(strings.ToLower(strings.TrimSpace(queueName)))
+	messagesURL := queueURL.NewMessagesURL()
+
+	body := base64.StdEncoding.EncodeToString(m.Body)
+
+	// TODO: add visibilityTimeout and timeToLive params as publish options
+	resp, err := messagesURL.Enqueue(options.Context, body, time.Second*0, time.Minute)
+	if err != nil {
+		return err
+	}
+
+	if resp != nil {
+		log.Debugf("AZQueue: message enqueued with ID: %s. Queue: %s, URL: %s", resp.MessageID, queueName, queueURL.String())
+	}
+
+	return nil
 }
 
 func (b *azqueueBroker) Subscribe(queueName string, h broker.Handler, opts ...broker.SubscribeOption) (broker.Subscriber, error) {
 	options := broker.SubscribeOptions{
 		AutoAck: true,
+		Queue:   queueName,
 		Context: context.Background(),
 	}
 
@@ -166,8 +191,16 @@ type subscriber struct {
 	exit        chan bool
 }
 
+func (s *subscriber) createQueue() bool {
+	if v := s.options.Context.Value(createQueueOptionKey{}); v != nil {
+		return v.(bool)
+	}
+
+	return false
+}
+
 func (s *subscriber) numWorkers() int {
-	if v := s.options.Context.Value(numWorkers{}); v != nil {
+	if v := s.options.Context.Value(numWorkersOptionKey{}); v != nil {
 		return v.(int)
 	}
 
@@ -175,7 +208,7 @@ func (s *subscriber) numWorkers() int {
 }
 
 func (s *subscriber) poisonMessageDequeueThreshold() int64 {
-	if v := s.options.Context.Value(poisonMessageDequeueThreshold{}); v != nil {
+	if v := s.options.Context.Value(poisonMessageDequeueThresholdOptionKey{}); v != nil {
 		return v.(int64)
 	}
 
@@ -196,6 +229,10 @@ func (s *subscriber) run(h broker.Handler) {
 			_, err := s.queueURL.GetProperties(s.options.Context)
 			if err != nil {
 				if errorType := err.(azqueue.StorageError).ServiceCode(); errorType == azqueue.ServiceCodeQueueNotFound {
+					if !s.createQueue() {
+						log.Fatalf("AZQueue: queue not found: %s", err)
+					}
+
 					log.Info("AZQueue: queue not found, creating")
 
 					if _, err := s.queueURL.Create(s.options.Context, azqueue.Metadata{}); err != nil {
@@ -228,28 +265,23 @@ func (s *subscriber) run(h broker.Handler) {
 			}
 
 			// Shows the service's infinite loop that dequeues messages and dispatches them in batches for processsing
-			for {
-				dequeue, err := s.messagesURL.Dequeue(s.options.Context, azqueue.QueueMaxMessagesDequeue, 10*time.Second)
-				if err != nil {
-					log.Fatal(err)
-				}
+			dequeue, err := s.messagesURL.Dequeue(s.options.Context, azqueue.QueueMaxMessagesDequeue, 10*time.Second)
+			if err != nil {
+				log.Fatal(err)
+			}
 
-				if dequeue.NumMessages() == 0 {
-					// The queue was empty; sleep a bit and try again
-					// Shorter time means higher costs & less latency to dequeue a brokerMessage
-					// Higher time means lower costs & more latency to dequeue a brokerMessage
-					time.Sleep(time.Second * 10)
-				} else {
-					// We got some messages, put them in the channel so that many can be processed in parallel:
-					// NOTE: The queue does not guarantee FIFO ordering & processing messages in parallel also does
-					// not preserve FIFO ordering. So, the "Output:" order below is not guaranteed but usually works.
-					for m := int32(0); m < dequeue.NumMessages(); m++ {
-						messagesChan <- dequeue.Message(m)
-					}
+			if dequeue.NumMessages() == 0 {
+				// The queue was empty; sleep a bit and try again
+				// Shorter time means higher costs & less latency to dequeue a brokerMessage
+				// Higher time means lower costs & more latency to dequeue a brokerMessage
+				time.Sleep(time.Second * 10)
+			} else {
+				// We got some messages, put them in the channel so that many can be processed in parallel:
+				// NOTE: The queue does not guarantee FIFO ordering & processing messages in parallel also does
+				// not preserve FIFO ordering. So, the "Output:" order below is not guaranteed but usually works.
+				for m := int32(0); m < dequeue.NumMessages(); m++ {
+					messagesChan <- dequeue.Message(m)
 				}
-
-				// This batch of dequeued messages are in the channel, dequeue another batch
-				break // NOTE: For this example only, break out of the infinite loop so this example terminates
 			}
 		}
 	}
@@ -293,7 +325,7 @@ func (s *subscriber) handleDequeuedMessage(dequeuedMessage *azqueue.DequeuedMess
 		Body:   body,
 	}
 
-	e := &azqueueEvent{
+	e := &publicationEvent{
 		queueName:       s.queueName,
 		context:         s.options.Context,
 		messageIDURL:    messageIDURL,
@@ -343,7 +375,7 @@ func (s *subscriber) Unsubscribe() error {
 	}
 }
 
-type azqueueEvent struct {
+type publicationEvent struct {
 	queueName       string
 	context         context.Context
 	messageIDURL    azqueue.MessageIDURL
@@ -353,15 +385,15 @@ type azqueueEvent struct {
 }
 
 // Topic returns the name of the queue at azure
-func (e *azqueueEvent) Topic() string {
+func (e *publicationEvent) Topic() string {
 	return e.queueName
 }
 
-func (e *azqueueEvent) Message() *broker.Message {
+func (e *publicationEvent) Message() *broker.Message {
 	return e.brokerMessage
 }
 
-func (e *azqueueEvent) Ack() error {
+func (e *publicationEvent) Ack() error {
 	popReceipt := e.dequeuedMessage.PopReceipt
 
 	// OPTIONAL: while processing a brokerMessage, you can update the brokerMessage's visibility timeout
@@ -385,6 +417,6 @@ func (e *azqueueEvent) Ack() error {
 	return nil
 }
 
-func (e *azqueueEvent) Error() error {
+func (e *publicationEvent) Error() error {
 	return e.err
 }
