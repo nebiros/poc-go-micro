@@ -1,3 +1,3 @@
 FROM alpine
-ADD pub /pub
-ENTRYPOINT [ "/pub" ]
+ADD poc-pub /poc-pub
+ENTRYPOINT [ "/poc-pub" ]
