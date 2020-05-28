@@ -17,17 +17,9 @@ import (
 	proto "github.com/nebiros/poc-go-micro/server/proto/example"
 )
 
-type SomeQueueProvider string
-
-const (
-	AWSSomeQueueProvider   SomeQueueProvider = "AWS"
-	AzureSomeQueueProvider SomeQueueProvider = "Azure"
-)
-
 var (
 	storageAccountName string
 	storageAccountKey  string
-	queueProvider      string
 )
 
 func init() {
@@ -54,14 +46,6 @@ func addCustomCmdFlags() {
 		Required:    true,
 		Destination: &storageAccountKey,
 	})
-
-	app.Flags = append(app.Flags, &cli.StringFlag{
-		Name:        "queue_provider",
-		Usage:       "Queue provider",
-		EnvVars:     []string{"QUEUE_PROVIDER"},
-		Required:    true,
-		Destination: &queueProvider,
-	})
 }
 
 func run() {
@@ -79,26 +63,13 @@ func run() {
 		azqueue.PoisonMessageDequeueThreshold(4),
 	)
 
-	var brokerOption micro.Option
-
-	switch SomeQueueProvider(queueProvider) {
-	case AWSSomeQueueProvider:
-		brokerOption = micro.Broker(azqueue.NewBroker(
-			azqueue.StorageAccountName(storageAccountName),
-			azqueue.StorageAccountKey(storageAccountKey),
-		))
-
-	case AzureSomeQueueProvider:
-		brokerOption = micro.Broker(azqueue.NewBroker(
-			azqueue.StorageAccountName(storageAccountName),
-			azqueue.StorageAccountKey(storageAccountKey),
-		))
-	}
-
 	service := micro.NewService(
 		micro.Name("com.thriveglobal.service.poc"),
 		micro.Version("latest"),
-		brokerOption,
+		micro.Broker(azqueue.NewBroker(
+			azqueue.StorageAccountName(storageAccountName),
+			azqueue.StorageAccountKey(storageAccountKey),
+		)),
 	)
 
 	service.Init()
