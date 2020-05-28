@@ -1,3 +1,3 @@
 FROM alpine
-ADD client /client
-ENTRYPOINT [ "/client" ]
+ADD poc-client /poc-client
+ENTRYPOINT [ "/poc-client" ]
