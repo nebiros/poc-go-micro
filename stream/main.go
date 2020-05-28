@@ -16,7 +16,7 @@ func init() {
 
 func main() {
 	service := micro.NewService(
-		micro.Name("com.thriveglobal.service.poc.client"),
+		micro.Name("com.thriveglobal.service.poc.client.stream"),
 		micro.Version("latest"),
 	)
 
@@ -24,26 +24,27 @@ func main() {
 
 	client := service.Client()
 
-	req := client.NewRequest("com.thriveglobal.service.poc", "Example.PingPong", &proto.StreamingRequest{})
+	req := client.NewRequest("com.thriveglobal.service.poc", "Example.Stream", &proto.StreamingRequest{})
 
 	stream, err := client.Stream(context.Background(), req)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for i := 0; i < 10; i++ {
-		if err := stream.Send(&proto.Ping{Stroke: int64(i + 1)}); err != nil {
-			log.Fatal(err)
-		}
+	if err := stream.Send(&proto.StreamingRequest{Count: int64(10)}); err != nil {
+		log.Fatal(err)
+	}
 
-		resp := &proto.Pong{}
+	for stream.Error() == nil {
+		resp := &proto.StreamingResponse{}
 
-		if err := stream.Recv(resp); err != nil {
+		err := stream.Recv(resp)
+		if err != nil {
 			log.Error(err)
 			break
 		}
 
-		log.Infof("Sent ping %v got pong %v\n", i+1, resp.Stroke)
+		log.Infof("Stream response: %d", resp.Count)
 	}
 
 	if stream.Error() != nil {
@@ -51,6 +52,6 @@ func main() {
 	}
 
 	if err := stream.Close(); err != nil {
-		log.Fatal("cannot close ping pong service: %s", err)
+		log.Fatal("cannot close stream service: %s", err)
 	}
 }

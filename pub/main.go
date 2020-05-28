@@ -56,7 +56,7 @@ func run() {
 	}
 
 	service := micro.NewService(
-		micro.Name("com.thriveglobal.service.poc.pub"),
+		micro.Name("com.thriveglobal.service.poc.client.pub"),
 		micro.Version("latest"),
 		micro.Broker(azqueue.NewBroker(
 			azqueue.StorageAccountName(storageAccountName),
