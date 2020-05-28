@@ -29,23 +29,23 @@ to build a flexible and robust system very fast.
 
 – https://itnext.io/micro-in-action-getting-started-a79916ae3cac
 
-## Server
+## server
 The `server` module contains a microservice implementation using go-micro, it uses our implementation 
 of a message broker connected with Azure.
 
-## Client
-The `client` module contains a client implementation using go-micro, a ping/pong client. It connects 
+## client-pingpong
+The `client-pingpong` module contains a client implementation using go-micro, a ping/pong client. It connects 
 to `server` microservice via gRPC.
 
-## Stream
-The `stream` module contains a client implementation using go-micro, a stream client. It connects 
+## client-stream
+The `client-stream` module contains a client implementation using go-micro, a stream client. It connects 
 to `server` microservice via gRPC.
 
-## Pub
-The `pub` module contains a client implementation using go-micro, a publisher client. It connects 
+## client-azqueue-pub
+The `client-azqueue-pub` module contains a client implementation using go-micro, a publisher client. It connects 
 to Azure through our `azqueue broker` sharing a queue between `server` module and it.
 
-## Broker/AZQueue
+## broker/azqueue
 The `azqueue` module contains the `pub/sub` implementation through Azure queues, ready to be hooked into 
 the runtime of any go-micro server or client.  
 
