@@ -1,4 +1,4 @@
-module github.com/nebiros/poc-go-micro/stream
+module github.com/nebiros/poc-go-micro/client-pingpong
 
 go 1.14
 

@@ -1,4 +1,4 @@
-module github.com/nebiros/poc-go-micro/client
+module github.com/nebiros/poc-go-micro/client-stream
 
 go 1.14
 

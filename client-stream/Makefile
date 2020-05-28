@@ -4,7 +4,7 @@ MODIFY=Mgithub.com/micro/go-micro/api/proto/api.proto=github.com/micro/go-micro/
 
 .PHONY: build
 build:
-	go build -race -v -o poc-stream *.go
+	go build -race -v -o client-stream *.go
 
 .PHONY: test
 test:
@@ -12,7 +12,7 @@ test:
 
 .PHONY: docker
 docker:
-	docker build . -t stream:latest
+	docker build . -t client-stream:latest
 
 .PHONY: run
 run:

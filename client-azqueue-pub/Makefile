@@ -4,7 +4,7 @@ MODIFY=Mgithub.com/micro/go-micro/api/proto/api.proto=github.com/micro/go-micro/
 
 .PHONY: build
 build:
-	go build -race -v -o poc-client *.go
+	go build -race -v -o client-azqueue-pub *.go
 
 .PHONY: test
 test:
@@ -12,7 +12,7 @@ test:
 
 .PHONY: docker
 docker:
-	docker build . -t client:latest
+	docker build . -t client-azqueue-pub:latest
 
 .PHONY: run
 run:

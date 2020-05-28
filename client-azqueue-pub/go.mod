@@ -1,4 +1,4 @@
-module github.com/nebiros/poc-go-micro/pub
+module github.com/nebiros/poc-go-micro/client-azqueue-pub
 
 go 1.14
 
