@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-option go_package = "proto/service";
+option go_package = "proto/example";
 
-service Service {
+service Example {
 	rpc Call(Request) returns (Response) {}
 	rpc Stream(StreamingRequest) returns (stream StreamingResponse) {}
 	rpc PingPong(stream Ping) returns (stream Pong) {}

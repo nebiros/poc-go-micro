@@ -1,4 +1,4 @@
-module github.com/nebiros/poc-go-micro/service
+module github.com/nebiros/poc-go-micro/server
 
 go 1.14
 

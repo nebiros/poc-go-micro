@@ -7,20 +7,24 @@ import (
 
 	"github.com/micro/cli/v2"
 
-	"github.com/nebiros/poc-go-micro/service/handler"
-	"github.com/nebiros/poc-go-micro/service/subscriber"
+	"github.com/nebiros/poc-go-micro/server/handler"
+	"github.com/nebiros/poc-go-micro/server/subscriber"
 
 	"github.com/micro/go-micro/v2"
 	log "github.com/micro/go-micro/v2/logger"
 
 	"github.com/nebiros/poc-go-micro/broker/azqueue"
-	proto "github.com/nebiros/poc-go-micro/service/proto/service"
+	proto "github.com/nebiros/poc-go-micro/server/proto/example"
 )
 
 var (
 	storageAccountName string
 	storageAccountKey  string
 )
+
+func init() {
+	log.Init(log.WithLevel(log.Level(log.TraceLevel)))
+}
 
 func main() {
 	run()
@@ -54,6 +58,7 @@ func run() {
 	subscribeOptions := broker.NewSubscribeOptions(
 		// we can use this option or the micro.RegisterSubscriber topic param
 		broker.Queue("sample-queue"),
+		azqueue.CreateQueue(true),
 		azqueue.NumWorkers(16),
 		azqueue.PoisonMessageDequeueThreshold(4),
 	)
@@ -69,7 +74,7 @@ func run() {
 
 	service.Init()
 
-	if err := proto.RegisterServiceHandler(service.Server(), new(handler.Service)); err != nil {
+	if err := proto.RegisterExampleHandler(service.Server(), new(handler.Example)); err != nil {
 		log.Fatal(err)
 	}
 
@@ -77,7 +82,7 @@ func run() {
 		// this is the queue name at azure
 		"sample-queue",
 		service.Server(),
-		new(subscriber.Service),
+		new(subscriber.Example),
 		// we can pass context options this way
 		server.SubscriberContext(subscribeOptions.Context),
 	); err != nil {

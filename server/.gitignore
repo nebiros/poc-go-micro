@@ -193,4 +193,4 @@ $RECYCLE.BIN/
 
 .env*
 !.env.example
-./service
+/poc-server

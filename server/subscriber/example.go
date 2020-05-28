@@ -3,14 +3,14 @@ package subscriber
 import (
 	"context"
 
-	proto "github.com/nebiros/poc-go-micro/service/proto/service"
+	proto "github.com/nebiros/poc-go-micro/server/proto/example"
 
 	log "github.com/micro/go-micro/v2/logger"
 )
 
-type Service struct{}
+type Example struct{}
 
-func (e *Service) Handle(ctx context.Context, msg *proto.Message) error {
+func (e *Example) Handle(ctx context.Context, msg *proto.Message) error {
 	log.Info("Handler Received message: ", msg.Say)
 	return nil
 }
